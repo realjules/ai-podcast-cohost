@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+jinja2
+openai
+python-dotenv
+langchain
+pypdf
+faiss-cpu
+elevenlabs
+numpy
+aiofiles

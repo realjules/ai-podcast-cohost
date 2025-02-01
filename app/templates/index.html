@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Podcast Co-Host</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">AI Podcast Co-Host</h1>
+        
+        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <!-- File Upload Section -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Upload Document for Context</h2>
+                <div class="flex items-center space-x-4">
+                    <input type="file" id="documentUpload" accept=".pdf" class="flex-1 p-2 border rounded">
+                    <button onclick="uploadPDF()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Upload PDF
+                    </button>
+                </div>
+                <div id="pdfStatus" class="mt-2 text-gray-600"></div>
+            </div>
+
+            <!-- Voice Recording Section -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Record Your Voice</h2>
+                <div class="flex items-center space-x-4">
+                    <button id="recordButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Start Recording
+                    </button>
+                    <div id="recordingStatus" class="text-gray-600"></div>
+                </div>
+                <div class="mt-4">
+                    <div id="waveform" class="h-24 bg-gray-100 rounded"></div>
+                </div>
+            </div>
+
+            <!-- Text Input Section -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Or Type Your Message</h2>
+                <div class="flex items-center space-x-4">
+                    <input type="text" id="textInput" class="flex-1 p-2 border rounded" placeholder="Type your message...">
+                    <button onclick="sendText()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Send
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conversation History -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Conversation</h2>
+                <div id="conversationHistory" class="border rounded p-4 h-96 overflow-y-auto space-y-4">
+                    <!-- Conversation messages will be added here -->
+                </div>
+            </div>
+
+            <!-- Audio Player -->
+            <div id="audioPlayerContainer" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">AI Response Audio</h2>
+                <audio id="audioPlayer" controls class="w-full"></audio>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let currentAudio = null;
+
+        async function uploadPDF() {
+            const fileInput = document.getElementById('documentUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a PDF file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const statusDiv = document.getElementById('pdfStatus');
+                statusDiv.textContent = 'Uploading and processing PDF...';
+                
+                const response = await fetch('/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                statusDiv.textContent = data.message;
+                
+                // Clear the file input
+                fileInput.value = '';
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                document.getElementById('pdfStatus').textContent = 'Error uploading PDF';
+            }
+        }
+
+        async function sendText() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value.trim();
+            
+            if (!text) return;
+
+            addMessageToConversation('You', text);
+            textInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                addMessageToConversation('AI', data.response);
+                playAudioResponse(data.audio_url);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessageToConversation('System', 'Error processing message');
+            }
+        }
+
+        document.getElementById('recordButton').addEventListener('click', async () => {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const formData = new FormData();
+                        formData.append('file', new File([audioBlob], 'recording.wav'));
+
+                        try {
+                            const response = await fetch('/upload-audio', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await response.json();
+                            
+                            addMessageToConversation('You', data.transcription);
+                            addMessageToConversation('AI', data.response);
+                            playAudioResponse(data.audio_url);
+                        } catch (error) {
+                            console.error('Error uploading audio:', error);
+                            addMessageToConversation('System', 'Error processing audio');
+                        }
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('recordButton').textContent = 'Stop Recording';
+                    document.getElementById('recordingStatus').textContent = 'Recording...';
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    document.getElementById('recordingStatus').textContent = 'Error accessing microphone';
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById('recordButton').textContent = 'Start Recording';
+                document.getElementById('recordingStatus').textContent = '';
+            }
+        });
+
+        function addMessageToConversation(sender, message) {
+            const conversationDiv = document.getElementById('conversationHistory');
+            const messageElement = document.createElement('div');
+            messageElement.className = 'p-3 rounded ' + 
+                (sender === 'You' ? 'bg-blue-100' : sender === 'AI' ? 'bg-green-100' : 'bg-red-100');
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            conversationDiv.appendChild(messageElement);
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+        }
+
+        function playAudioResponse(audioUrl) {
+            const playerContainer = document.getElementById('audioPlayerContainer');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            
+            audioPlayer.src = audioUrl;
+            currentAudio = audioPlayer;
+            playerContainer.classList.remove('hidden');
+            audioPlayer.play();
+        }
+
+        // Handle enter key in text input
+        document.getElementById('textInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendText();
+            }
+        });
+
+        // Load conversation history on page load
+        async function loadConversationHistory() {
+            try {
+                const response = await fetch('/conversation-history');
+                const data = await response.json();
+                
+                data.history.forEach(msg => {
+                    addMessageToConversation(
+                        msg.role === 'user' ? 'You' : 'AI',
+                        msg.content
+                    );
+                });
+            } catch (error) {
+                console.error('Error loading conversation history:', error);
+            }
+        }
+
+        // Load history when page loads
+        loadConversationHistory();
+    </script>
+</body>
+</html>
