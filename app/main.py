@@ -22,7 +22,14 @@ except ImportError as e:
 # Continue with local imports
 if not MOCK_MODE:
     try:
-        from utils import AudioProcessor, ConversationManager, DocumentProcessor
+        # Try both relative and absolute imports to handle different execution contexts
+        try:
+            from .utils import AudioProcessor, ConversationManager, DocumentProcessor
+        except (ImportError, ValueError):
+            try:
+                from app.utils import AudioProcessor, ConversationManager, DocumentProcessor
+            except ImportError:
+                from utils import AudioProcessor, ConversationManager, DocumentProcessor
     except ImportError as e:
         print(f"ERROR: Failed to import local modules: {e}")
         MOCK_MODE = True
