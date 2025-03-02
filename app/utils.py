@@ -9,7 +9,6 @@ import random
 # Import optional dependencies
 try:
     import openai
-    from elevenlabs import generate, save, set_api_key
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     from langchain.document_loaders import PyPDFLoader
     from langchain.vectorstores import FAISS
@@ -22,13 +21,12 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
-# Configure API keys only if not in mock mode
+# Configure API key only if not in mock mode
 if not MOCK_MODE:
     try:
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        set_api_key(os.getenv("ELEVENLABS_API_KEY"))
     except Exception as e:
-        print(f"Error setting API keys: {str(e)}")
+        print(f"Error setting API key: {str(e)}")
         MOCK_MODE = True
 
 class DocumentProcessor:
@@ -100,18 +98,21 @@ class AudioProcessor:
             return "/static/audio/no_audio.mp3"
             
         try:
-            audio = generate(
-                text=text,
-                voice="Adam",
-                model="eleven_monolingual_v1"
-            )
-            
             # Save to temporary file
             temp_dir = Path("app/static/audio")
             temp_dir.mkdir(exist_ok=True)
             
             temp_file = temp_dir / f"{hash(text)}.mp3"
-            save(audio, str(temp_file))
+            
+            # Generate speech using OpenAI's TTS API
+            response = await openai.audio.speech.create(
+                model="tts-1",
+                voice="alloy",  # Options: alloy, echo, fable, onyx, nova, shimmer
+                input=text
+            )
+            
+            # Save the audio file
+            response.stream_to_file(str(temp_file))
             
             return f"/static/audio/{temp_file.name}"
         except Exception as e:

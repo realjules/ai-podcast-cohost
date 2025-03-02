@@ -191,7 +191,7 @@ processing or document understanding capabilities.
     else:
         # Normal FastAPI startup - using the current module
         import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=53269, reload=False)
+        uvicorn.run(app, host="0.0.0.0", port=53997, reload=False)
 
 if __name__ == "__main__":
     run()

@@ -7,7 +7,7 @@ An interactive AI-powered podcast co-host that can engage in natural conversatio
 - 🎙️ **Voice Interaction**
   - Real-time voice recording
   - Speech-to-text using OpenAI's Whisper API
-  - Text-to-speech using ElevenLabs API
+  - Text-to-speech using OpenAI's TTS API
 
 - 📚 **Document Processing**
   - PDF upload and processing
@@ -29,8 +29,7 @@ An interactive AI-powered podcast co-host that can engage in natural conversatio
 - **Backend**: FastAPI (Python)
 - **Frontend**: HTML, JavaScript, Tailwind CSS
 - **AI/ML**: 
-  - OpenAI GPT-4 & Whisper
-  - ElevenLabs TTS
+  - OpenAI GPT-4, Whisper & TTS
   - LangChain
   - FAISS Vector Store
 
@@ -50,7 +49,6 @@ An interactive AI-powered podcast co-host that can engage in natural conversatio
 3. Create a `.env` file in the project root:
    ```
    OPENAI_API_KEY=your_openai_api_key
-   ELEVENLABS_API_KEY=your_elevenlabs_api_key
    ```
 
 4. Run the application:
@@ -58,7 +56,7 @@ An interactive AI-powered podcast co-host that can engage in natural conversatio
    python app/main.py
    ```
 
-5. Open your browser and navigate to `http://localhost:53269`
+5. Open your browser and navigate to `http://localhost:53997`
 
 ## Usage
 
