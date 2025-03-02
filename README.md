@@ -58,7 +58,7 @@ An interactive AI-powered podcast co-host that can engage in natural conversatio
    python app/main.py
    ```
 
-5. Open your browser and navigate to `http://localhost:53269`
+5. Open your browser and navigate to `http://127.0.0.1:53269`
 
 ## Usage
 

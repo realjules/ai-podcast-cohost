@@ -2,11 +2,10 @@ fastapi
 uvicorn
 python-multipart
 jinja2
-openai
+openai>=1.0.0
 python-dotenv
 langchain
 pypdf
 faiss-cpu
-elevenlabs
 numpy
 aiofiles

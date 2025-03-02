@@ -2,8 +2,13 @@
 
 ## Build/Run Commands
 - Install dependencies: `pip install -r requirements.txt`
-- Run application: `python app/main.py`
-- Server runs at: `http://localhost:53269`
+- Run application: `python run.py` or `python app/main.py`
+- Server runs at: `http://127.0.0.1:53269`
+- Mock mode fallback: Open `app/static/index.html` in a browser when dependencies aren't available
+
+## Development Modes
+- **Full Mode**: All dependencies installed and API keys configured
+- **Mock Mode**: Simplified interface that works without dependencies for testing UI/UX
 
 ## Code Style Guidelines
 - **Imports**: Standard library first, then third-party modules, then local imports
@@ -14,9 +19,11 @@
 - **Async/await**: Use for all IO operations and API endpoints
 
 ## Code Organization
+- `run.py`: Entry point script to run the application
 - `app/main.py`: FastAPI routes and server configuration
-- `app/utils.py`: Core functionality classes
-- `app/templates/index.html`: Frontend interface
+- `app/utils.py`: Core functionality classes (AudioProcessor, DocumentProcessor, ConversationManager)
+- `app/templates/index.html`: Main frontend interface
+- `app/static/index.html`: Simplified mock interface for development
 - Static assets stored in app/static directory
 - Clear separation between UI, API endpoints, and business logic
 
@@ -25,3 +32,4 @@
 - OpenAI for language models and audio transcription
 - ElevenLabs for text-to-speech
 - LangChain with FAISS for document processing
+- Environment variables in .env file for API keys
