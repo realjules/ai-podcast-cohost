@@ -38,10 +38,40 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Audio Player -->
+            <div id="audioPlayerContainer" class="hidden mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-semibold">AI Voice</h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="toggleAutoplay" class="px-2 py-1 bg-green-500 text-white rounded text-sm">
+                            Autoplay: On
+                        </button>
+                        <button id="toggleVoiceMode" class="px-2 py-1 bg-blue-500 text-white rounded text-sm">
+                            Voice Mode
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded">
+                    <p class="mb-3">In mock mode, audio playback is simulated. In full mode, this would play the AI's voice.</p>
+                    <div class="w-full h-12 bg-gray-200 rounded flex items-center justify-center">
+                        <div class="flex items-center">
+                            <div class="mr-3">🔊</div>
+                            <div class="w-64 h-2 bg-blue-500 rounded relative">
+                                <div class="absolute top-0 right-0 -mt-1 w-3 h-3 rounded-full bg-white border border-blue-500"></div>
+                            </div>
+                            <div class="ml-3">0:15 / 0:30</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        let autoplayEnabled = true;
+        let voiceModeEnabled = false;
+        
         const mockResponses = [
             "That's an interesting point. I think our podcast listeners would enjoy hearing more about this.",
             "I agree with your perspective. This would make for a great discussion topic.",
@@ -50,7 +80,21 @@
             "That reminds me of a recent study on this topic. The findings were quite surprising."
         ];
         
-        function getRandomResponse() {
+        function getRandomResponse(text) {
+            // Handle very short queries specially
+            if (text && text.trim().length <= 3) {
+                const shortResponses = [
+                    "I didn't quite catch that. Could you please elaborate?",
+                    "Hello there! Would you like to discuss something specific about the document?",
+                    "I'm here to help! Feel free to ask me a more detailed question.",
+                    "That was a short message. Could you share more about what you'd like to discuss?",
+                    "As your podcast co-host, I'm ready to dive deeper into any topic you'd like to explore."
+                ];
+                const index = Math.floor(Math.random() * shortResponses.length);
+                return shortResponses[index];
+            }
+            
+            // Regular responses for normal queries
             const index = Math.floor(Math.random() * mockResponses.length);
             return mockResponses[index];
         }
@@ -75,10 +119,30 @@
             addMessageToConversation('You', text);
             textInput.value = '';
             
+            // Handle PDF summary request
+            if (text.toLowerCase().includes('pdf') && 
+                (text.toLowerCase().includes('summary') || text.toLowerCase().includes('summarize'))) {
+                setTimeout(() => {
+                    const summaryText = `📄 Mock summary of document: This appears to be a research paper discussing artificial intelligence applications in podcasting. The authors propose a novel approach to creating an AI co-host that can respond naturally to human hosts and provide relevant information from uploaded documents.`;
+                    addMessageToConversation('System', summaryText);
+                    
+                    // Simulate audio playing for the summary
+                    const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+                    if (audioPlayerContainer) {
+                        audioPlayerContainer.classList.remove('hidden');
+                        const messageElement = document.createElement('div');
+                        messageElement.className = 'p-3 rounded bg-blue-100 mt-2';
+                        messageElement.innerHTML = `<strong>🔊 Audio:</strong> Document summary is being read aloud (mock audio in demo mode)`;
+                        document.getElementById('conversationHistory').appendChild(messageElement);
+                    }
+                }, 1000);
+                return;
+            }
+            
             // Simulate AI thinking
             setTimeout(() => {
                 // Add AI response
-                const response = getRandomResponse();
+                const response = getRandomResponse(text);
                 addMessageToConversation('AI', response);
             }, 1000);
         }
@@ -88,6 +152,45 @@
         document.getElementById('textInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 handleSend();
+            }
+        });
+        
+        // Set up toggle buttons for audio features
+        document.getElementById('toggleAutoplay').addEventListener('click', function() {
+            autoplayEnabled = !autoplayEnabled;
+            this.textContent = autoplayEnabled ? 'Autoplay: On' : 'Autoplay: Off';
+            this.className = autoplayEnabled 
+                ? 'px-2 py-1 bg-green-500 text-white rounded text-sm'
+                : 'px-2 py-1 bg-gray-500 text-white rounded text-sm';
+        });
+        
+        document.getElementById('toggleVoiceMode').addEventListener('click', function() {
+            voiceModeEnabled = !voiceModeEnabled;
+            this.className = voiceModeEnabled 
+                ? 'px-2 py-1 bg-purple-500 text-white rounded text-sm'
+                : 'px-2 py-1 bg-blue-500 text-white rounded text-sm';
+                
+            if (voiceModeEnabled) {
+                this.textContent = 'Voice Mode: On';
+                const messageElement = document.createElement('div');
+                messageElement.className = 'p-3 rounded bg-purple-100';
+                messageElement.innerHTML = '<strong>System:</strong> Voice mode activated. The AI will now listen for your voice input and respond with voice automatically.';
+                document.getElementById('conversationHistory').appendChild(messageElement);
+                document.getElementById('audioPlayerContainer').classList.remove('hidden');
+            } else {
+                this.textContent = 'Voice Mode';
+                const messageElement = document.createElement('div');
+                messageElement.className = 'p-3 rounded bg-gray-100';
+                messageElement.innerHTML = '<strong>System:</strong> Voice mode deactivated. Returning to text chat.';
+                document.getElementById('conversationHistory').appendChild(messageElement);
+            }
+        });
+        
+        // Add keyboard shortcut for voice mode toggle (V key)
+        document.addEventListener('keydown', function(e) {
+            // Only if not in an input field
+            if (document.activeElement.tagName !== 'INPUT' && e.key.toLowerCase() === 'v') {
+                document.getElementById('toggleVoiceMode').click();
             }
         });
     </script>

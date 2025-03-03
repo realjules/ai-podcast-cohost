@@ -58,7 +58,17 @@
 
             <!-- Audio Player -->
             <div id="audioPlayerContainer" class="hidden">
-                <h2 class="text-xl font-semibold mb-4">AI Response Audio</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-semibold">AI Voice</h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="toggleAutoplay" class="px-2 py-1 bg-green-500 text-white rounded text-sm">
+                            Autoplay: On
+                        </button>
+                        <button id="toggleVoiceMode" class="px-2 py-1 bg-blue-500 text-white rounded text-sm">
+                            Voice Mode
+                        </button>
+                    </div>
+                </div>
                 <audio id="audioPlayer" controls class="w-full"></audio>
             </div>
         </div>
@@ -69,6 +79,8 @@
         let audioChunks = [];
         let isRecording = false;
         let currentAudio = null;
+        let autoplayEnabled = true;
+        let voiceModeEnabled = false;
 
         async function uploadPDF() {
             const fileInput = document.getElementById('documentUpload');
@@ -93,6 +105,16 @@
                 
                 const data = await response.json();
                 statusDiv.textContent = data.message;
+                
+                // Display summary if available
+                if (data.summary) {
+                    addMessageToConversation('System', `📄 ${data.summary}`);
+                    
+                    // Play the audio summary if available
+                    if (data.audio_url) {
+                        playAudioResponse(data.audio_url);
+                    }
+                }
                 
                 // Clear the file input
                 fileInput.value = '';
@@ -198,7 +220,19 @@
             audioPlayer.src = audioUrl;
             currentAudio = audioPlayer;
             playerContainer.classList.remove('hidden');
-            audioPlayer.play();
+            
+            // Only autoplay if enabled
+            if (autoplayEnabled) {
+                audioPlayer.play();
+            }
+            
+            // Set up event listener for when audio finishes playing
+            audioPlayer.onended = function() {
+                // If in voice mode, focus back on the text input for easy response
+                if (voiceModeEnabled) {
+                    document.getElementById('textInput').focus();
+                }
+            };
         }
 
         // Handle enter key in text input
@@ -225,6 +259,50 @@
             }
         }
 
+        // Set up toggle buttons for audio features
+        document.getElementById('toggleAutoplay').addEventListener('click', function() {
+            autoplayEnabled = !autoplayEnabled;
+            this.textContent = autoplayEnabled ? 'Autoplay: On' : 'Autoplay: Off';
+            this.className = autoplayEnabled 
+                ? 'px-2 py-1 bg-green-500 text-white rounded text-sm'
+                : 'px-2 py-1 bg-gray-500 text-white rounded text-sm';
+        });
+        
+        document.getElementById('toggleVoiceMode').addEventListener('click', function() {
+            voiceModeEnabled = !voiceModeEnabled;
+            this.className = voiceModeEnabled 
+                ? 'px-2 py-1 bg-purple-500 text-white rounded text-sm'
+                : 'px-2 py-1 bg-blue-500 text-white rounded text-sm';
+                
+            if (voiceModeEnabled) {
+                // In voice mode, automatically focus on the record button
+                document.getElementById('recordButton').focus();
+                document.getElementById('recordButton').classList.add('ring-2', 'ring-purple-500');
+                this.textContent = 'Voice Mode: On';
+                
+                // Start listening immediately if not already recording
+                if (!isRecording) {
+                    document.getElementById('recordButton').click();
+                }
+            } else {
+                document.getElementById('recordButton').classList.remove('ring-2', 'ring-purple-500');
+                this.textContent = 'Voice Mode';
+                
+                // Stop recording if currently recording
+                if (isRecording) {
+                    document.getElementById('recordButton').click();
+                }
+            }
+        });
+        
+        // Add keyboard shortcut for voice mode toggle (V key)
+        document.addEventListener('keydown', function(e) {
+            // Only if not in an input field
+            if (document.activeElement.tagName !== 'INPUT' && e.key.toLowerCase() === 'v') {
+                document.getElementById('toggleVoiceMode').click();
+            }
+        });
+        
         // Load history when page loads
         loadConversationHistory();
     </script>

@@ -3,7 +3,7 @@
 ## Build/Run Commands
 - Install dependencies: `pip install -r requirements.txt`
 - Run application: `python run.py` or `python app/main.py`
-- Server runs at: `http://127.0.0.1:53269`
+- Server runs at: `http://127.0.0.1:53997`
 - Mock mode fallback: Open `app/static/index.html` in a browser when dependencies aren't available
 
 ## Development Modes
@@ -29,7 +29,6 @@
 
 ## Dependencies
 - FastAPI framework with Uvicorn ASGI server
-- OpenAI for language models and audio transcription
-- ElevenLabs for text-to-speech
+- OpenAI for language models, audio transcription, and text-to-speech
 - LangChain with FAISS for document processing
 - Environment variables in .env file for API keys

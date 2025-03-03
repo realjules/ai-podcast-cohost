@@ -81,8 +81,31 @@ if not MOCK_MODE:
             content = await file.read()
             await out_file.write(content)
         
-        await conversation_manager.doc_processor.process_pdf(str(file_path))
-        return {"message": "PDF processed successfully"}
+        try:
+            # Process the PDF and get a summary
+            summary = await conversation_manager.doc_processor.process_pdf(str(file_path))
+            
+            # Also add a system message to conversation history about the document
+            conversation_manager.conversation_history.append({
+                "role": "system", 
+                "content": f"A document has been uploaded and processed: {file.filename}"
+            })
+            
+            # Generate audio for the summary
+            audio_url = await audio_processor.generate_speech(summary)
+            
+            return {
+                "message": "PDF processed successfully", 
+                "summary": summary,
+                "audio_url": audio_url
+            }
+        except Exception as e:
+            print(f"Error processing PDF: {str(e)}")
+            return {
+                "message": "PDF processed with limited functionality", 
+                "summary": "The document was processed, but I couldn't generate a detailed summary at this time.",
+                "audio_url": "/static/audio/no_audio.mp3"
+            }
     
     @app.post("/upload-audio")
     async def upload_audio(file: UploadFile = File(...)):
@@ -124,18 +147,27 @@ if not MOCK_MODE:
             if not text:
                 raise HTTPException(status_code=400, detail="Text is required")
                 
-            # Get AI response
-            ai_response = await conversation_manager.get_response(text)
-            
-            # Generate speech from AI response
-            audio_url = await audio_processor.generate_speech(ai_response)
-            
-            return {
-                "response": ai_response,
-                "audio_url": audio_url
-            }
+            try:
+                # Get AI response
+                ai_response = await conversation_manager.get_response(text)
+                
+                # Generate speech from AI response
+                audio_url = await audio_processor.generate_speech(ai_response)
+                
+                return {
+                    "response": ai_response,
+                    "audio_url": audio_url
+                }
+            except Exception as e:
+                print(f"Error in chat processing: {str(e)}")
+                fallback_response = "I'm sorry, I encountered an issue processing your request."
+                return {
+                    "response": fallback_response,
+                    "audio_url": "/static/audio/no_audio.mp3"
+                }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            print(f"Critical chat error: {str(e)}")
+            raise HTTPException(status_code=500, detail="An error occurred processing your request")
     
     @app.get("/conversation-history")
     async def get_conversation_history():
@@ -171,9 +203,8 @@ To run the full application with all features:
 1. Install all dependencies:
    pip install -r requirements.txt
 
-2. Make sure you have valid API keys in .env file:
+2. Make sure you have valid API key in .env file:
    OPENAI_API_KEY=your_key_here
-   ELEVENLABS_API_KEY=your_key_here
 
 3. Run the application:
    python run.py
@@ -191,7 +222,7 @@ processing or document understanding capabilities.
     else:
         # Normal FastAPI startup - using the current module
         import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=53997, reload=False)
+        uvicorn.run(app, host="127.0.0.1", port=53997, reload=False)
 
 if __name__ == "__main__":
     run()
